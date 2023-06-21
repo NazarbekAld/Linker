@@ -52,32 +52,33 @@ public class Accept implements DiscordSubCMD {
             Message message = parent.getIncomingRequest().get(player.getUniqueId());
             try {
                 DSL.using(platform.getDataSource().getConnection())
-                        .insertInto(DSL.table("linker"), DSL.field("discord_user_id"), DSL.field("minecraft_user_uuid"), DSL.field("link_date"))
+                        .insertInto(DSL.table("discord"), DSL.field("discord_user_id"), DSL.field("minecraft_user_uuid"), DSL.field("link_date"))
                         .values(Long.parseLong(message.getAuthor().getId()), player.getUniqueId().toString(), DSL.currentTimestamp())
                         .execute();
+
                 message.reply("Player successfully linked.")
                         .setMessageReference(message)
                         .setAllowedMentions(List.of(Message.MentionType.USER))
                         .queue();
+
                 Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getPluginManager().callEvent(new DiscordLinkedEvent(player, message)));
-                parent.getIncomingRequest().remove(player.getUniqueId());
                 player.sendMessage(ChatColor.GREEN + "Discord account successfully linked!");
             } catch (SQLException e) {
                 message.reply("Failed to link. Something went wrong!")
                         .setMessageReference(message)
                         .setAllowedMentions(List.of(Message.MentionType.USER))
                         .queue();
+
                 player.sendMessage(ChatColor.RED + "Failed to link. Something went wrong!");
-                parent.getIncomingRequest().remove(player.getUniqueId());
             }catch (DataAccessException e) {
                 message.reply("Failed to link. You or the player is already linked!")
                         .setMessageReference(message)
                         .setAllowedMentions(List.of(Message.MentionType.USER))
                         .queue();
-                player.sendMessage(ChatColor.RED + "Failed to link. You or the discord user is already linked!");
-                parent.getIncomingRequest().remove(player.getUniqueId());
-            }
 
+                player.sendMessage(ChatColor.RED + "Failed to link. You or the discord user is already linked!");
+            }
+            parent.getIncomingRequest().remove(player.getUniqueId());
         });
 
 

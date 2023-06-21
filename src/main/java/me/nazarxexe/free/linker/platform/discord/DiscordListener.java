@@ -9,7 +9,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jooq.impl.DSL;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -29,7 +31,6 @@ public class DiscordListener extends ListenerAdapter implements EventListener {
         if (!(platform.section.getStringList("link_channels").contains(event.getMessage().getChannel().getId()))) return;
 
         String[] content = event.getMessage().getContentRaw().split(" ");
-        System.out.println(Arrays.toString(content));
         if (!(content[0].equals("!link"))) return;
 
         if (Arrays.stream(content).count() == 1) {
@@ -48,6 +49,11 @@ public class DiscordListener extends ListenerAdapter implements EventListener {
             reply(event.getMessage(), "Player already has a request.");
             return;
         }
+        if (isIgnored(player)) {
+            reply(event.getMessage(), "Can't verify. Player is on ignore mode.");
+            return;
+        }
+
 
         reply(event.getMessage(), "Verify message sent to " + content[1] + ". Waiting for confirmation...");
 
@@ -68,5 +74,20 @@ public class DiscordListener extends ListenerAdapter implements EventListener {
                 .setMessageReference(to)
                 .setAllowedMentions(List.of(Message.MentionType.USER))
                 .queue();
+    }
+
+    private boolean isIgnored(Player player) {
+
+        try {
+            return !(DSL.using(platform.getDataSource().getConnection())
+                    .select()
+                    .from("discord_ignore_list")
+                    .where(DSL.field("minecraft_user_uuid").eq(player.getUniqueId().toString()))
+                    .fetch().isEmpty());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return true;
+        }
+
     }
 }
