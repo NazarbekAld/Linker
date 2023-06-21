@@ -1,6 +1,7 @@
 package me.nazarxexe.free.linker.platform.discord.command.subcommand;
 
 import me.nazarxexe.free.linker.platform.discord.Discord;
+import me.nazarxexe.free.linker.platform.discord.DiscordLinkedEvent;
 import me.nazarxexe.free.linker.platform.discord.command.DiscordCMD;
 import me.nazarxexe.free.linker.platform.discord.command.DiscordSubCMD;
 import net.dv8tion.jda.api.entities.Message;
@@ -58,6 +59,7 @@ public class Accept implements DiscordSubCMD {
                         .setMessageReference(message)
                         .setAllowedMentions(List.of(Message.MentionType.USER))
                         .queue();
+                Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getPluginManager().callEvent(new DiscordLinkedEvent(player, message)));
                 parent.getIncomingRequest().remove(player.getUniqueId());
                 player.sendMessage(ChatColor.GREEN + "Discord account successfully linked!");
             } catch (SQLException e) {

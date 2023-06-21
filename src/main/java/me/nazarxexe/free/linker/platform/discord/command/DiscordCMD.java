@@ -30,8 +30,6 @@ public class DiscordCMD implements CommandExecutor, TabCompleter {
 
         incomingRequest = new HashMap<>();
         this.discordSub = new ArrayList<>();
-
-
     }
 
     @Override
