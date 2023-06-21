@@ -1,0 +1,9 @@
+name: LINKER
+version: '${project.version}'
+main: me.nazarxexe.free.linker.LINKER
+api-version: 1.19
+
+commands:
+  discord:
+    description: "-"
+    permission: me.nazarxexe.link.discord

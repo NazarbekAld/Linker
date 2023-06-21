@@ -1,0 +1,16 @@
+
+discord:
+  enable: false
+  token: '-'
+  # Recommended to set verify channels the COOLDOWN to prevent players spamming.
+  link_channels: []
+  # List of activities available:
+  # PLAYING
+  # STREAMING
+  # LISTENING
+  # WATCHING
+  # CUSTOM_STATUS
+  # COMPETING
+  activity:
+    - WATCHING
+    - Breaking Bad
