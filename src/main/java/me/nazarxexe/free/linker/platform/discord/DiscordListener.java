@@ -1,7 +1,7 @@
 package me.nazarxexe.free.linker.platform.discord;
 
 import me.nazarxexe.free.linker.platform.discord.command.DiscordCMD;
-import net.dv8tion.jda.api.entities.Message;
+import me.nazarxexe.free.linker.platform.discord.operations.RequestOperation;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -9,11 +9,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import org.jooq.impl.DSL;
-
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
 
 public class DiscordListener extends ListenerAdapter implements EventListener {
 
@@ -33,61 +28,32 @@ public class DiscordListener extends ListenerAdapter implements EventListener {
         String[] content = event.getMessage().getContentRaw().split(" ");
         if (!(content[0].equals("!link"))) return;
 
-        if (Arrays.stream(content).count() == 1) {
-            reply(event.getMessage(), "Please type player nickname in the server.");
+        RequestOperation operation = new RequestOperation(event.getMessage(), cmd);
+        operation.execute();
+
+        if (operation.output().equals("OFFLINE")) {
+            platform.reply(event.getMessage(), "Player is offline.");
             return;
         }
-        String nickname = content[1];
-
-        Player player = Bukkit.getServer().getPlayer(nickname);
-
-        if (player == null) {
-            reply(event.getMessage(), "Player is not online.");
+        if (operation.output().equals("IGNORE")) {
+            platform.reply(event.getMessage(), "Player is on ignore mode.");
             return;
         }
-        if (cmd.getIncomingRequest().containsKey(player.getUniqueId())) {
-            reply(event.getMessage(), "Player already has a request.");
+        if (operation.output().equals("BLOCKED")) {
+            platform.reply(event.getMessage(), "Player already has a request.");
             return;
         }
-        if (isIgnored(player)) {
-            reply(event.getMessage(), "Can't verify. Player is on ignore mode.");
-            return;
-        }
-
-
-        reply(event.getMessage(), "Verify message sent to " + content[1] + ". Waiting for confirmation...");
-
-        player.sendMessage(
-                ChatColor.translateAlternateColorCodes('&',
-                        "&e" + event.getMessage().getAuthor().getName() + " is trying to link to this account - \n" +
-                                "&a/discord accept - &fAccept \n" +
-                                "&c/discord deny - &fDeny"
+        Player player = Bukkit.getPlayer(content[1]);
+        platform.reply(event.getMessage(), "Sending request to the player...");
+        player.sendMessage(ChatColor.translateAlternateColorCodes('&',
+                event.getAuthor().getName() + " is trying to link this account.\n" +
+                        "&a/discord accept &f- Confirm the linking request.\n" +
+                        "&c/discord decline &f- Decline the linking request."
                 )
         );
 
-        cmd.getIncomingRequest().put(player.getUniqueId(), event.getMessage());
+
 
     }
 
-    private void reply(Message to, String content) {
-        to.getChannel().sendMessage(content)
-                .setMessageReference(to)
-                .setAllowedMentions(List.of(Message.MentionType.USER))
-                .queue();
-    }
-
-    private boolean isIgnored(Player player) {
-
-        try {
-            return !(DSL.using(platform.getDataSource().getConnection())
-                    .select()
-                    .from("discord_ignore_list")
-                    .where(DSL.field("minecraft_user_uuid").eq(player.getUniqueId().toString()))
-                    .fetch().isEmpty());
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return true;
-        }
-
-    }
 }

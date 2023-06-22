@@ -2,12 +2,12 @@ package me.nazarxexe.free.linker.platform.discord.command.subcommand;
 
 import me.nazarxexe.free.linker.LINKER;
 import me.nazarxexe.free.linker.platform.discord.command.DiscordSubCMD;
+import me.nazarxexe.free.linker.platform.discord.operations.IgnoreModeOperation;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.jooq.Table;
 import org.jooq.impl.DSL;
 
 import java.sql.SQLException;
@@ -33,28 +33,22 @@ public class Ignore implements DiscordSubCMD {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
 
             Player player = (Player) sender;
-           if (isIgnored(player)) {
-               try {
-                   DSL.using(LINKER.getDataSource().getConnection())
-                           .deleteFrom(DSL.table("discord_ignore_list"))
-                           .where(DSL.field("minecraft_user_uuid").eq(player.getUniqueId().toString()))
-                           .execute();
-                   player.sendMessage(ChatColor.RED + "Ignore mode disabled.");
-               } catch (SQLException e) {
-                   e.printStackTrace();
-                   player.sendMessage(ChatColor.RED + "Something went wrong.");
-               }
-               return;
-           }
-            try {
-                DSL.using(LINKER.getDataSource().getConnection())
-                        .insertInto(DSL.table("discord_ignore_list"), DSL.field("minecraft_user_uuid"))
-                        .values(player.getUniqueId().toString())
-                        .execute();
-                player.sendMessage(ChatColor.GREEN + "Ignore mode enabled.");
-            } catch (SQLException e) {
-                e.printStackTrace();
-                player.sendMessage(ChatColor.RED + "Something went wrong.");
+            IgnoreModeOperation ignoreModeOperation = new IgnoreModeOperation(player);
+
+            ignoreModeOperation.execute();
+
+            if (!(ignoreModeOperation.output()[0].equals("OK"))) {
+                sender.sendMessage( ChatColor.RED + "Something went wrong!");
+                return;
+            }
+
+            if (ignoreModeOperation.output()[1].equals("ENABLE")){
+                sender.sendMessage(ChatColor.GREEN + "Ignore mode enabled!");
+                return;
+            }
+            if (ignoreModeOperation.output()[1].equals("DISABLE")){
+                sender.sendMessage(ChatColor.RED + "Ignore mode disabled!");
+                return;
             }
 
         });

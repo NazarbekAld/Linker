@@ -4,19 +4,13 @@ import me.nazarxexe.free.linker.platform.discord.Discord;
 import me.nazarxexe.free.linker.platform.discord.DiscordLinkedEvent;
 import me.nazarxexe.free.linker.platform.discord.command.DiscordCMD;
 import me.nazarxexe.free.linker.platform.discord.command.DiscordSubCMD;
+import me.nazarxexe.free.linker.platform.discord.operations.LinkOperation;
 import net.dv8tion.jda.api.entities.Message;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.jooq.exception.DataAccessException;
-import org.jooq.impl.DSL;
-import org.jooq.impl.SQLDataType;
-
-import java.sql.SQLException;
-import java.util.Date;
-import java.util.List;
 
 public class Accept implements DiscordSubCMD {
 
@@ -50,35 +44,25 @@ public class Accept implements DiscordSubCMD {
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             Message message = parent.getIncomingRequest().get(player.getUniqueId());
-            try {
-                DSL.using(platform.getDataSource().getConnection())
-                        .insertInto(DSL.table("discord"), DSL.field("discord_user_id"), DSL.field("minecraft_user_uuid"), DSL.field("link_date"))
-                        .values(Long.parseLong(message.getAuthor().getId()), player.getUniqueId().toString(), DSL.currentTimestamp())
-                        .execute();
 
-                message.reply("Player successfully linked.")
-                        .setMessageReference(message)
-                        .setAllowedMentions(List.of(Message.MentionType.USER))
-                        .queue();
+            LinkOperation linkOperation = new LinkOperation(message, player);
 
-                Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getPluginManager().callEvent(new DiscordLinkedEvent(player, message)));
-                player.sendMessage(ChatColor.GREEN + "Discord account successfully linked!");
-            } catch (SQLException e) {
-                message.reply("Failed to link. Something went wrong!")
-                        .setMessageReference(message)
-                        .setAllowedMentions(List.of(Message.MentionType.USER))
-                        .queue();
+            linkOperation.execute();
 
-                player.sendMessage(ChatColor.RED + "Failed to link. Something went wrong!");
-            }catch (DataAccessException e) {
-                message.reply("Failed to link. You or the player is already linked!")
-                        .setMessageReference(message)
-                        .setAllowedMentions(List.of(Message.MentionType.USER))
-                        .queue();
-
-                player.sendMessage(ChatColor.RED + "Failed to link. You or the discord user is already linked!");
+            if (linkOperation.output().equals("DB_UNIQUE")) {
+                player.sendMessage(ChatColor.RED + "You or Discord user already linked.");
+                platform.reply(message, "You or the player is already linked.");
+                return;
             }
-            parent.getIncomingRequest().remove(player.getUniqueId());
+            if (linkOperation.output().equals("DB_ERROR")) {
+                player.sendMessage(ChatColor.RED + "Something went wrong.");
+                platform.reply(message, "Something went wrong send linking request later.");
+                return;
+            }
+            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getPluginManager().callEvent(new DiscordLinkedEvent(player, message)));
+            player.sendMessage(ChatColor.GREEN + "Successfully linked!");
+            platform.reply(message, "Successfully linked!");
+
         });
 
 

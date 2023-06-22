@@ -9,6 +9,7 @@ import me.nazarxexe.free.linker.platform.discord.command.DiscordCMD;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.bukkit.Bukkit;
@@ -47,15 +48,10 @@ public class Discord implements Platform {
 
         logger = LoggerFactory.getLogger("Linker-Discord");
 
-        logger.info("Creating discord config section...");
-
-        logger.info("Setting up database...");
-
         if(section.getBoolean("enable", false)) {
             logger.info("Disabled.");
             return;
         }
-
 
         try {
             DSL.using(dataSource.getConnection())
@@ -114,4 +110,12 @@ public class Discord implements Platform {
             return false;
         }
     }
+
+    public void reply(Message to, String content) {
+        to.getChannel().sendMessage(content)
+                .setMessageReference(to)
+                .setAllowedMentions(List.of(Message.MentionType.USER))
+                .queue();
+    }
+
 }
