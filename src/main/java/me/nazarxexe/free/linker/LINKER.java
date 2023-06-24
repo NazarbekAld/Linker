@@ -77,10 +77,9 @@ public final class LINKER extends JavaPlugin {
     private void database() {
 
         File dbconf = new File(this.getDataFolder(), "database.properties");
-
-        if (!dbconf.exists()) {
-            try {
-                dbconf.createNewFile();
+        try {
+            boolean nonExist = dbconf.createNewFile();
+            if (nonExist) {
                 FileWriter writer = new FileWriter(dbconf);
                 writer.write("dataSourceClassName=org.postgresql.ds.PGSimpleDataSource\n" +
                         "dataSource.user=test\n" +
@@ -88,14 +87,14 @@ public final class LINKER extends JavaPlugin {
                         "dataSource.databaseName=mydb\n" +
                         "dataSource.portNumber=5432\n" +
                         "dataSource.serverName=localhost");
+                writer.flush();
                 writer.close();
-            } catch (IOException e) {
-                getLogger().log(Level.SEVERE, "Failed to created db file.", e);
             }
+        } catch (IOException e) {
+            getLogger().log(Level.SEVERE, "Failed to created db file.", e);
         }
 
         dataSource = new HikariDataSource(new HikariConfig(dbconf.getAbsolutePath()));
-
     }
 
     private void network(Plugin plugin) {
